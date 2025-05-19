@@ -6,6 +6,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProyectoEntity } from './proyecto.entity/proyecto.entity';
+import { CreateProyectoDto } from './proyecto.dto/create-proyecto.dto';
+import { EstudianteDto } from '../estudiante/estudiante.dto/estudiante.dto';
+import { EstudianteEntity } from '../estudiante/estudiante.entity/estudiante.entity';
 
 @Injectable()
 export class ProyectoService {
@@ -14,8 +17,10 @@ export class ProyectoService {
     private readonly proyectoRepository: Repository<ProyectoEntity>,
   ) {}
 
-  async crearProyecto(proyecto: ProyectoEntity): Promise<ProyectoEntity> {
-    const { presupuesto, titulo } = proyecto;
+  async crearProyecto(
+    createProyectoDto: CreateProyectoDto,
+  ): Promise<ProyectoEntity> {
+    const { presupuesto, titulo } = createProyectoDto;
 
     if (presupuesto <= 0) {
       throw new BadRequestException('El presupuesto debe ser mayor a 0');
@@ -26,11 +31,11 @@ export class ProyectoService {
       );
     }
 
-    const nuevoProyecto = this.proyectoRepository.create(proyecto);
+    const nuevoProyecto = this.proyectoRepository.create(createProyectoDto);
     return this.proyectoRepository.save(nuevoProyecto);
   }
 
-  async avanzarProyecto(id: number): Promise<ProyectoEntity> {
+  async avanzarEstado(id: number): Promise<boolean> {
     const proyecto = await this.proyectoRepository.findOneBy({ id });
 
     if (!proyecto) {
@@ -42,20 +47,31 @@ export class ProyectoService {
     }
 
     proyecto.estado += 1;
-    return this.proyectoRepository.save(proyecto);
+    await this.proyectoRepository.save(proyecto);
+
+    return true;
   }
 
-  async findAllEstudiantes(id: number) {
+  async findEstudianteByProyecto(id: number): Promise<EstudianteDto> {
     const proyecto = await this.proyectoRepository.findOne({
       where: { id },
       relations: ['estudiante'],
     });
 
-    if (!proyecto) {
-      throw new NotFoundException('Proyecto no encontrado');
+    if (!proyecto || !proyecto.estudiante) {
+      throw new NotFoundException('Proyecto o estudiante no encontrado');
     }
 
-    return proyecto.estudiante;
+    const estudiante: EstudianteEntity = proyecto.estudiante;
+
+    return {
+      id: estudiante.id,
+      cedula: estudiante.cedula,
+      nombre: estudiante.nombre,
+      semestre: estudiante.semestre,
+      programa: estudiante.programa,
+      promedio: estudiante.promedio,
+    };
   }
 
   async findAll(): Promise<ProyectoEntity[]> {

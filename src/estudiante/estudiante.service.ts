@@ -46,7 +46,7 @@ export class EstudianteService {
 
     if (tieneProyectosActivos) {
       throw new BadRequestException(
-        'No se puede eliminar el estudiante porque tiene proyectos activos',
+        'No se puede eliminar el estudiante porque tiene proyectos activos ',
       );
     }
 
